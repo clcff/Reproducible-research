@@ -1,0 +1,104 @@
+#Project 1 Document
+Claudio Freitas
+
+##Section 1
+
+This is the first code chunk to read the data file and transform data:
+
+
+```{r, echo=TRUE}
+library(plyr)
+activity <- read.csv("./repdata-data-activity/activity.csv")
+activity$date <- as.Date(activity$date)
+activity$steps <- as.numeric(activity$steps)
+activity$interval <- as.numeric(activity$interval)
+apply(activity, 2, max, na.rm=T)
+
+```
+
+##Section2
+
+Subset data, calculate total steps per day and plot histogram
+
+```{r, echo=TRUE}
+subdata <- ddply(activity, .(date), summarize, agregate = sum(steps))
+hist(subdata$agregate,col="red",breaks=20,xlab="mean steps per day", main="Steps histogram")
+meansteps <- format(mean(subdata$agregate, na.rm=T), nsmall=2)
+mediansteps <- format(median(subdata$agregate,na.rm=T), nsamll=2)
+```
+
+The mean is `r meansteps` and the median is `r mediansteps`.
+
+##Section 3
+
+subset data to calculate average step for each interval and plot a linear chart
+
+```{r, echo=TRUE}
+subdata1 <- ddply(activity, .(interval), summarize, agregateX = mean(interval))
+subdata2 <- with(activity, tapply(steps, interval, mean, na.rm=T))
+plot(subdata1$agregateX, subdata2, type="l", xlab = "Time interval", ylab = "Number of Steps")
+```
+
+Calculate the interval with max average steps
+```{r, echo=TRUE}
+maxi <- max(subdata2)
+maxint <- which.max(subdata2)
+maxint<- subdata1$agregateX[maxint]
+```
+
+The maximum value for average number of steps in a particluar time interval is `r maxi`
+
+The 5 minutes time interval for the maximum average number of steps is `r maxint`
+
+##Section 4
+
+Calculating the number of rows with NAs
+
+```{r, echo=TRUE}
+totalna<- sum(is.na(activity$steps))
+print (totalna)
+```
+
+Create a new dataset without NAs
+
+```{r, echo=TRUE}
+totalna<- is.na(activity$steps)
+subdata<- tapply(activity$steps, activity$interval, mean, na.rm=T)
+activity$steps[totalna] <- subdata[as.character(activity$interval[totalna])]
+```
+
+
+Plot a histogram with the sum of the steps for each day
+```{r, echo=T}
+result<- tapply(activity$steps, activity$date, sum, na.rm=T)
+hist(result, col="red",breaks=20, xlab="mean steps per day", main="Steps histogram")
+mean1<- format(mean(result))
+median1<- format(median(result))
+```
+
+The mean is `r mean1`
+
+The median is `r median1`
+
+
+##Section 5
+
+Subseting weekday and weekend using the wekdays() function
+
+```{r, echo=TRUE}
+activity$day<- weekdays(as.Date(activity$date))
+actwday<- subset(activity, !day %in% c("sabado", "domingo"))
+actwend<- subset(activity, day %in% c("sabado","domingo"))
+```
+
+creating a panel with the two charts (weekend and weekdays)
+
+```{r, echo=TRUE}
+par(mfrow=c(1,2))
+Yweekdays<- tapply(actwday$steps, actwday$interval, mean, na.rm=T)
+Xweekdays<- tapply(actwday$interval, actwday$interval,unique, na.rm=T)
+Yweekends<- tapply(actwend$steps, actwend$interval, mean, na.rm=T)
+Xweekends<- tapply(actwend$interval, actwend$interval,unique, na.rm=T)
+plot(Xweekdays, Yweekdays, type="l",xlab = "Weekdays activity", ylab = "Total steps")
+plot(Xweekends, Yweekends, type="l",xlab = "Weekends activity", ylab = "Total steps")
+```
